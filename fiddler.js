@@ -1,4 +1,4 @@
-import System;
+ import System;
 import System.Windows.Forms;
 import Fiddler;
 
@@ -120,8 +120,9 @@ class Handlers
     RulesStringValue(24,"Kindle Fire (Silk)", "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_3; en-us; Silk/1.0.22.79_10013310) AppleWebKit/533.16 (KHTML, like Gecko) Version/5.0 Safari/533.16 Silk-Accelerated=true")
     RulesStringValue(25,"&Custom...", "%CUSTOM%")
     public static var sUA: String = null;
-				
-	RulesString("移动网络模拟",true)
+	
+	//add mobile network
+	RulesString("Mobile Network",true)
 	RulesStringValue(0,"2G", "490")
 	RulesStringValue(1,"3G", "100")
 	RulesStringValue(2,"4G", "10")
@@ -129,17 +130,8 @@ class Handlers
 
     // Cause Fiddler to delay HTTP traffic to simulate typical 56k modem conditions
     public static RulesOption("Simulate &Modem Speeds", "Per&formance")
-    var m_SimulateModems: boolean = false;
-		
-	public static RulesOption("2G", "Per&formance")
-	var m_SimulateModem: boolean = false;
-	
-	public static RulesOption("3G", "Per&formance")
-	var m_SimulateModem_3g: boolean = false;
+    var m_SimulateModem: boolean = false;
 
-	public static RulesOption("4G", "Per&formance")
-	var m_SimulateModem_4g: boolean = false;
-		
     // Removes HTTP-caching related headers and specifies "no-cache" on requests and responses
     public static RulesOption("&Disable Caching", "Per&formance")
     var m_DisableCaching: boolean = false;
@@ -163,115 +155,87 @@ class Handlers
         UI.actUpdateInspector(true,true);
     }
 
-	static function OnBeforeRequest(oSession: Session) {
-		// Sample Rule: Color ASPX requests in RED
-		// if (oSession.uriContains(".aspx")) {	oSession["ui-color"] = "red";	}
+    static function OnBeforeRequest(oSession: Session) {
+        // Sample Rule: Color ASPX requests in RED
+        // if (oSession.uriContains(".aspx")) {	oSession["ui-color"] = "red";	}
 
-		// Sample Rule: Flag POSTs to fiddler2.com in italics
-		// if (oSession.HostnameIs("www.fiddler2.com") && oSession.HTTPMethodIs("POST")) {	oSession["ui-italic"] = "yup";	}
+        // Sample Rule: Flag POSTs to fiddler2.com in italics
+        // if (oSession.HostnameIs("www.fiddler2.com") && oSession.HTTPMethodIs("POST")) {	oSession["ui-italic"] = "yup";	}
 
-		// Sample Rule: Break requests for URLs containing "/sandbox/"
-		// if (oSession.uriContains("/sandbox/")) {
-		//     oSession.oFlags["x-breakrequest"] = "yup";	// Existence of the x-breakrequest flag creates a breakpoint; the "yup" value is unimportant.
-		// }
+        // Sample Rule: Break requests for URLs containing "/sandbox/"
+        // if (oSession.uriContains("/sandbox/")) {
+        //     oSession.oFlags["x-breakrequest"] = "yup";	// Existence of the x-breakrequest flag creates a breakpoint; the "yup" value is unimportant.
+        // }
 
-		if ((null != gs_ReplaceToken) && (oSession.url.indexOf(gs_ReplaceToken)>-1)) {   // Case sensitive
-			oSession.url = oSession.url.Replace(gs_ReplaceToken, gs_ReplaceTokenWith); 
-		}
-		if ((null != gs_OverridenHost) && (oSession.host.toLowerCase() == gs_OverridenHost)) {
-			oSession["x-overridehost"] = gs_OverrideHostWith; 
-		}
+        if ((null != gs_ReplaceToken) && (oSession.url.indexOf(gs_ReplaceToken)>-1)) {   // Case sensitive
+            oSession.url = oSession.url.Replace(gs_ReplaceToken, gs_ReplaceTokenWith); 
+        }
+        if ((null != gs_OverridenHost) && (oSession.host.toLowerCase() == gs_OverridenHost)) {
+            oSession["x-overridehost"] = gs_OverrideHostWith; 
+        }
 
-		if ((null!=bpRequestURI) && oSession.uriContains(bpRequestURI)) {
-			oSession["x-breakrequest"]="uri";
-		}
+        if ((null!=bpRequestURI) && oSession.uriContains(bpRequestURI)) {
+            oSession["x-breakrequest"]="uri";
+        }
 
-		if ((null!=bpMethod) && (oSession.HTTPMethodIs(bpMethod))) {
-			oSession["x-breakrequest"]="method";
-		}
+        if ((null!=bpMethod) && (oSession.HTTPMethodIs(bpMethod))) {
+            oSession["x-breakrequest"]="method";
+        }
 
-		if ((null!=uiBoldURI) && oSession.uriContains(uiBoldURI)) {
-			oSession["ui-bold"]="QuickExec";
-		}
+        if ((null!=uiBoldURI) && oSession.uriContains(uiBoldURI)) {
+            oSession["ui-bold"]="QuickExec";
+        }
+
+        if (m_SimulateModem) {
+			//（1* 8/1000）/ x ）*2.0=2
+            // Delay sends by 300ms per KB uploaded.
+            oSession["request-trickle-delay"] = "300"; 
+            // Delay receives by 150ms per KB downloaded.
+            oSession["response-trickle-delay"] = "150"; 
+        }
 		
-		
-		
-		if (m_SimulateModems) {
-			
-			// Delay sends by 300ms per KB uploaded.
-			oSession["request-trickle-delay"] = "300" 
-			// Delay receives by 150ms per KB downloaded.
-			oSession["response-trickle-delay"] ="150" 
-		}
-		
-		
-		function moni(min, max) {
+		function mock(min, max) {
 			return Math.round(Math.random()*(max-min)+min);
 		}
-		/*switch(1==1){
-			case m_SimulateModem:
-				FiddlerObject.log(moni(400,500));
-				// Delay sends by 300ms per KB uploaded.
-				oSession["request-trickle-delay"] = "" + moni(400,500); 
-				// Delay receives by 150ms per KB downloaded.
-				oSession["response-trickle-delay"] ="" + moni(400,500);
-				break;
-			case m_SimulateModem_3g:
-				FiddlerObject.log(moni(100,120));
-				// Delay sends by 300ms per KB uploaded.
-				oSession["request-trickle-delay"] = "" + moni(100,120); 
-				// Delay receives by 150ms per KB downloaded.
-				oSession["response-trickle-delay"] ="" + moni(100,120);
-				break;
-			case m_SimulateModem_4g:
-				FiddlerObject.log(moni(14,14));
-				// Delay sends by 300ms per KB uploaded.
-				oSession["request-trickle-delay"] = "" + moni(14,16); 
-				// Delay receives by 150ms per KB downloaded.
-				oSession["response-trickle-delay"] ="" + moni(29,31);
-				break;
-					}*/
-		
-		if (m_networkSpeed){
-			FiddlerObject.log(moni(parseInt(m_networkSpeed),parseInt(m_networkSpeed)+10));
-			oSession["request-trickle-delay"] = "" + moni(parseInt(m_networkSpeed),parseInt(m_networkSpeed)+10); 
-			oSession["response-trickle-delay"] = "" + moni(parseInt(m_networkSpeed),parseInt(m_networkSpeed)+10); 
-		}
-		
 			
-
-		if (m_DisableCaching) {
-			oSession.oRequest.headers.Remove("If-None-Match");
-			oSession.oRequest.headers.Remove("If-Modified-Since");
-			oSession.oRequest["Pragma"] = "no-cache";
+		if (m_networkSpeed){
+			FiddlerObject.log('Now Speed ===>' + mock(parseInt(m_networkSpeed),parseInt(m_networkSpeed)+10));
+			oSession["request-trickle-delay"] = "" + mock(parseInt(m_networkSpeed),parseInt(m_networkSpeed)+10); 
+			oSession["response-trickle-delay"] = "" + mock(parseInt(m_networkSpeed),parseInt(m_networkSpeed)+10); 
 		}
 
-		// User-Agent Overrides
-		if (null != sUA) {
-			oSession.oRequest["User-Agent"] = sUA; 
-		}
+        if (m_DisableCaching) {
+            oSession.oRequest.headers.Remove("If-None-Match");
+            oSession.oRequest.headers.Remove("If-Modified-Since");
+            oSession.oRequest["Pragma"] = "no-cache";
+        }
 
-		if (m_Japanese) {
-			oSession.oRequest["Accept-Language"] = "ja";
-		}
+        // User-Agent Overrides
+        if (null != sUA) {
+            oSession.oRequest["User-Agent"] = sUA; 
+        }
 
-		if (m_AutoAuth) {
-			// Automatically respond to any authentication challenges using the 
-			// current Fiddler user's credentials. You can change (default)
-			// to a domain\\username:password string if preferred.
-			//
-			// WARNING: This setting poses a security risk if remote 
-			// connections are permitted!
-			oSession["X-AutoAuth"] = "(default)";
-		}
+        if (m_Japanese) {
+            oSession.oRequest["Accept-Language"] = "ja";
+        }
 
-		if (m_AlwaysFresh && (oSession.oRequest.headers.Exists("If-Modified-Since") || oSession.oRequest.headers.Exists("If-None-Match")))
-		{
-			oSession.utilCreateResponseAndBypassServer();
-			oSession.responseCode = 304;
-			oSession["ui-backcolor"] = "Lavender";
-		}
-	}
+        if (m_AutoAuth) {
+            // Automatically respond to any authentication challenges using the 
+            // current Fiddler user's credentials. You can change (default)
+            // to a domain\\username:password string if preferred.
+            //
+            // WARNING: This setting poses a security risk if remote 
+            // connections are permitted!
+            oSession["X-AutoAuth"] = "(default)";
+        }
+
+        if (m_AlwaysFresh && (oSession.oRequest.headers.Exists("If-Modified-Since") || oSession.oRequest.headers.Exists("If-None-Match")))
+        {
+            oSession.utilCreateResponseAndBypassServer();
+            oSession.responseCode = 304;
+            oSession["ui-backcolor"] = "Lavender";
+        }
+    }
 
     // This function is called immediately after a set of request headers has
     // been read from the client. This is typically too early to do much useful
@@ -382,8 +346,8 @@ class Handlers
     static function Main() {
         var today: Date = new Date();
         FiddlerObject.StatusText = " CustomRules.js was loaded at: " + today;
-        	
-        FiddlerObject.UI.lvSessions.AddBoundColumn("ServerIP", 120, "X-HostIP");
+        //IP
+        FiddlerObject.UI.lvSessions.AddBoundColumn("ServerIP",120,"X-HostIP");
 
         // Uncomment to add a "Server" column containing the response "Server" header, if present
         // UI.lvSessions.AddBoundColumn("Server", 50, "@response.server");
@@ -528,14 +492,6 @@ class Handlers
         }
     }
 }
-
-
-
-
-
-
-
-
 
 
 
