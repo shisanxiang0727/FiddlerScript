@@ -235,6 +235,14 @@ class Handlers
             oSession.responseCode = 304;
             oSession["ui-backcolor"] = "Lavender";
         }
+		
+		// distinguish Http and Https
+		if(oSession.isHTTPS && oSession.url.indexOf(oSession.host)> -1){  
+			oSession["ui-color"] = "blue";  
+		}  
+		if(!oSession.isHTTPS && oSession.url.indexOf(oSession.host)> -1){  
+			oSession["ui-color"] = "green";  
+		}
     }
 
     // This function is called immediately after a set of request headers has
@@ -492,6 +500,7 @@ class Handlers
         }
     }
 }
+
 
 
 
