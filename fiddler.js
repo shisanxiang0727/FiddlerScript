@@ -75,6 +75,42 @@ class Handlers
         Utilities.LaunchHyperlink(sAction);
     }
     */
+		
+	
+	// add request cost time
+	function BeginRequestTime(oS: Session)
+	{ if (oS.Timers != null) { return oS.Timers.ClientBeginRequest.ToString(); } return String.Empty; }
+
+	public static BindUIColumn("TimeTaken/ms" ,120) function TimeTaken(oS: Session): String{ 
+		var sResult = "0"; 
+		var t1_ms = oS.Timers.ClientBeginResponse.ToUniversalTime().Millisecond; 
+		var t1_m = oS.Timers.ClientBeginResponse.ToUniversalTime().Minute; 
+		var t1_s = oS.Timers.ClientBeginResponse.ToUniversalTime().Second; 
+		var t1 = t1_m*60*1000 + t1_s*1000 + t1_ms ; 
+		var t2_ms = oS.Timers.ClientDoneRequest.ToUniversalTime().Millisecond;
+		var t2_m = oS.Timers.ClientDoneRequest.ToUniversalTime().Minute; var t2_s = oS.Timers.ClientDoneRequest.ToUniversalTime().Second; 
+		var t2 = t2_m*60*1000 + t2_s*1000 + t2_ms ; 
+		if(t1 >= t2){ 
+			var t3 = t1 - t2;
+			sResult = t3.toString(); } return sResult; }
+
+	function CalcTimingCol(oS: Session){ var sResult = String.Empty; if ((oS.Timers.ServerDoneResponse > oS.Timers.ClientDoneRequest))
+		{ sResult = (oS.Timers.ServerDoneResponse - oS.Timers.ClientDoneRequest).ToString(); } return sResult; }
+		
+	
+		
+	// open in Chrome
+	public static ContextAction("Open in Chrome")
+	function DoOpenInIE(oSessions: Fiddler.Session[]){
+		if (null == oSessions){
+			MessageBox.Show("Please choose at least 1 session."); return;
+		}
+		for (var x = 0; x < oSessions.Length; x++){
+			//excute cmd 
+			System.Diagnostics.Process.Start("chrome.exe", oSessions[x].url);
+		}
+	}
+		
 
     public static RulesOption("Hide 304s")
     BindPref("fiddlerscript.rules.Hide304s")
@@ -351,19 +387,24 @@ class Handlers
     */
 
     // The Main() function runs everytime your FiddlerScript compiles
-    static function Main() {
-        var today: Date = new Date();
-        FiddlerObject.StatusText = " CustomRules.js was loaded at: " + today;
-        //IP
-        FiddlerObject.UI.lvSessions.AddBoundColumn("ServerIP",120,"X-HostIP");
+	static function Main() {
+		var today: Date = new Date();
+		FiddlerObject.StatusText = " CustomRules.js was loaded at: " + today;
+		//IP
+		FiddlerObject.UI.lvSessions.AddBoundColumn("ServerIP",120,"X-HostIP");
+		//请求类型
+		FiddlerObject.UI.lvSessions.AddBoundColumn("HTTPMethod",60,getHTTPMethod );
 
-        // Uncomment to add a "Server" column containing the response "Server" header, if present
-        // UI.lvSessions.AddBoundColumn("Server", 50, "@response.server");
+		// Uncomment to add a "Server" column containing the response "Server" header, if present
+		// UI.lvSessions.AddBoundColumn("Server", 50, "@response.server");
 
-        // Uncomment to add a global hotkey (Win+G) that invokes the ExecAction method below...
-        // UI.RegisterCustomHotkey(HotkeyModifiers.Windows, Keys.G, "screenshot"); 
-    }
-
+		// Uncomment to add a global hotkey (Win+G) that invokes the ExecAction method below...
+		// UI.RegisterCustomHotkey(HotkeyModifiers.Windows, Keys.G, "screenshot"); 
+	
+	}
+	static function getHTTPMethod(oS: Session){
+		if (null != oS.oRequest) return oS.oRequest.headers.HTTPMethod; else return String.Empty;
+	}
     // These static variables are used for simple breakpointing & other QuickExec rules 
     BindPref("fiddlerscript.ephemeral.bpRequestURI")
     public static var bpRequestURI:String = null;
@@ -500,6 +541,14 @@ class Handlers
         }
     }
 }
+
+
+
+
+
+
+
+
 
 
 
